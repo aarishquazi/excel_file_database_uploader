@@ -1,0 +1,5 @@
+server = "192.168.10.39"
+database = "sgmisdemo"
+username = "mis"
+password = "mis@321"
+driver = "ODBC Driver 17 for SQL Server"

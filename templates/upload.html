@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel Upload | IHMS Portal</title>
+  <link rel="icon" href="/static/favicon.ico">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" rel="stylesheet">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #f8f9fa, #e9ecef);
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .full-page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    footer {
+      background: #003366;
+      color: white;
+      text-align: center;
+      padding: 0.75rem;
+      margin-top: auto;
+    }
+    .container {
+      flex-grow: 1;
+      padding: 2rem;
+      max-width: 1000px;
+      margin: auto;
+    }
+    .file-preview-card {
+      background: #ffffff;
+      border: 1px solid #dee2e6;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      transition: transform 0.3s, background-color 0.3s;
+    }
+    .file-preview-card:hover {
+      transform: translateY(-4px);
+    }
+    .progress {
+      height: 24px;
+      border-radius: 50px;
+    }
+    .preview-table {
+      font-size: 0.92rem;
+    }
+    .file-remove {
+      cursor: pointer;
+      color: red;
+    }
+    .description {
+      background: #ffffffcc;
+      border-left: 5px solid #0d6efd;
+      padding: 1.25rem;
+      border-radius: 0.75rem;
+      margin-bottom: 2rem;
+      text-align: center;
+      box-shadow: 0 0 10px rgba(0,0,0,0.03);
+    }
+    .centered-btns {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+    }
+    .centered-section {
+      display: flex;
+      justify-content: center;
+      flex-direction: column;
+      align-items: center;
+    }
+    label.form-label {
+      font-weight: 600;
+    }
+    .file-remove:hover {
+      color: darkred;
+    }
+    .btn {
+      transition: all 0.3s ease;
+    }
+    .btn:hover {
+      transform: scale(1.05);
+    }
+    .dark-mode, .dark-mode body {
+      background-color: #121212 !important;
+      color: #e0e0e0 !important;
+    }
+    .dark-mode .card,
+    .dark-mode .file-preview-card,
+    .dark-mode .description,
+    .dark-mode .form-control,
+    .dark-mode .list-group-item,
+    .dark-mode .table,
+    .dark-mode .progress,
+    .dark-mode #file-list {
+      background-color: #1e1e1e !important;
+      color: #e0e0e0 !important;
+      border-color: #333 !important;
+    }
+    #file-list {
+      max-height: 160px;
+      overflow-y: auto;
+      border: 1px solid #dee2e6;
+      border-radius: 0.5rem;
+      background-color: #ffffff;
+      padding: 0.5rem;
+    }
+    .dark-mode #file-list {
+      background-color: #1e1e1e;
+    }
+    #file-list::-webkit-scrollbar {
+      width: 8px;
+    }
+    #file-list::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+    }
+    .floating-help {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #0d6efd;
+      color: white;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      z-index: 999;
+      cursor: pointer;
+    }
+    .floating-help:hover {
+      background: #084298;
+    }
+  </style>
+</head>
+<body>
+  <div class="full-page">
+    <header class="d-flex justify-content-between align-items-center px-4 py-3 shadow" style="background: #003366;">
+      <div>
+        <h2 class="text-white mb-0">IHMS Excel Upload Portal</h2>
+        <p class="text-white-50 mb-0 fs-6">Smart & Secure Upload for Hospital Excel Records</p>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        {% if username %}
+          <span class="text-white me-2">👤 {{ username }}</span>
+        {% endif %}
+        <a href="/logout" class="btn btn-outline-warning btn-sm">🔓 Logout</a>
+        <button class="btn btn-outline-light btn-sm" onclick="toggleDarkMode()">
+          <i class="bi bi-moon-stars"></i>
+        </button>
+      </div>
+    </header>
+
+
+    <div class="container">
+      <div class="description">
+        <p><strong>Welcome</strong> to the IHMS Upload System. Upload multiple Excel files with hospital billing and diagnostic data. Preview, remove, and track your upload securely and efficiently. Duplicate entries are filtered by <strong>Bill ID</strong> and <strong>Service Description</strong>.</p>
+        <p><strong>Important:</strong> If rows are skipped or data is not uploaded, check for duplicates using <strong>Bill Date</strong> and <strong>Service Description</strong> to resolve the issue.</p>
+        <p><a href="/static/sample_template.xlsx" class="btn btn-info" download>Download Sample Excel Template</a></p>
+      </div>
+
+      <div class="card shadow-lg border-0 mb-4">
+        <div class="card-body centered-section">
+          <form id="upload-form" style="width: 100%; max-width: 600px;">
+            <div class="mb-3 text-center">
+              <label for="files" class="form-label fs-5">📁 Upload Excel Files (.xlsx, Max: 200MB)</label>
+              <input class="form-control form-control-lg" type="file" id="files" name="files" multiple accept=".xlsx">
+            </div>
+
+            <!-- Row Preview Slider -->
+            <div class="mb-3 text-center">
+              <label for="rows-preview" class="form-label fs-5">Rows to Preview:</label>
+              <input type="range" class="form-range" min="5" max="20" step="5" id="rows-preview" value="5">
+              <p id="rows-preview-value">5</p>
+            </div>
+
+            <ul id="file-list" class="list-group list-group-flush mb-3"></ul>
+            <div class="centered-btns">
+              <button type="button" id="preview-btn" class="btn btn-primary btn-lg"><i class="bi bi-search"></i> Preview</button>
+              <button type="button" id="clear-btn" class="btn btn-outline-danger btn-lg"><i class="bi bi-x-circle"></i> Clear</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="preview-section" class="centered-section" style="display:none;">
+        <h5 class="mb-3 text-dark">📊 File Preview:</h5>
+        <div id="preview-output" style="width: 100%; max-width: 900px;"></div>
+        <div class="text-center mt-3">
+          <button type="button" id="confirm-upload" class="btn btn-success btn-lg shadow"><i class="bi bi-cloud-upload"></i> Confirm & Upload</button>
+        </div>
+        <div class="progress mt-4 shadow-sm" style="width: 100%; max-width: 900px;">
+          <div id="upload-progress" class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width: 0%;">0%</div>
+        </div>
+      </div>
+
+      <div id="response-message" class="mt-4 text-center"></div>
+    </div>
+
+    <footer>
+      &copy; 2025 IHMS System | Powered by Installer Guru | Secure Excel Data Transfer System
+    </footer>
+  </div>
+
+  <script>
+    let selectedFiles = [];
+    const fileInput = document.getElementById("files");
+    const fileList = document.getElementById("file-list");
+    const previewSection = document.getElementById("preview-section");
+    const previewOutput = document.getElementById("preview-output");
+    const responseDiv = document.getElementById("response-message");
+    const progressBar = document.getElementById("upload-progress");
+    const rowsPreviewSlider = document.getElementById("rows-preview");
+    const rowsPreviewValue = document.getElementById("rows-preview-value");
+
+    rowsPreviewSlider.addEventListener('input', function() {
+        rowsPreviewValue.innerText = this.value;  // Display the selected value of the slider
+    });
+
+    fileInput?.addEventListener("change", () => {
+        const newFiles = Array.from(fileInput.files);
+      newFiles.forEach(file => {
+        if (!selectedFiles.some(f => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified)) {
+          selectedFiles.push(file);
+        }
+      });
+      renderFileList();
+    });
+  
+    function renderFileList() {
+        const fileList = document.getElementById("file-list");
+      if (!fileList) return;
+      fileList.innerHTML = "";
+      selectedFiles.forEach((file, index) => {
+        const li = document.createElement("li");
+        li.className = "list-group-item d-flex justify-content-between align-items-center";
+        li.innerHTML = `
+          ${file.name} <span class='badge bg-secondary'>${(file.size / 1024).toFixed(2)} KB</span>
+          <span class="file-remove ms-3" onclick="removeFile(${index})">✖</span>
+        `;
+        fileList.appendChild(li);
+      });
+    }
+  
+    function removeFile(index) {
+        selectedFiles.splice(index, 1);
+        renderFileList();
+    }
+  
+    document.getElementById("clear-btn").addEventListener("click", () => {
+      selectedFiles = [];
+      fileInput.value = "";
+      renderFileList();
+      previewSection.style.display = "none";
+      previewOutput.innerHTML = "";
+      responseDiv.innerHTML = "";
+      progressBar.style.width = "0%";
+      progressBar.textContent = "0%";
+    });
+  
+    document.getElementById("preview-btn").addEventListener("click", async () => {
+  if (!selectedFiles.length) return alert("Please select files.");
+
+  // Get the selected value from the row preview slider
+  const rowsToPreview = parseInt(rowsPreviewSlider.value);  // Get the number of rows to preview
+
+  const formData = new FormData();
+  for (let file of selectedFiles) formData.append("files", file);
+  formData.append("rowsToPreview", rowsToPreview);  // Ensure rowsToPreview is sent with the request
+
+  const res = await fetch("/preview-files/", { method: "POST", body: formData });
+  const data = await res.json();
+
+  if (res.ok) {
+    previewSection.style.display = "block";
+    previewOutput.innerHTML = data.files.map(file => {
+      let rows = file.records.slice(0, rowsToPreview).map(row =>
+        `<tr>${Object.values(row).map(val => `<td>${val}</td>`).join('')}</tr>`
+      ).join('');
+      let headers = Object.keys(file.records[0] || {}).map(h => `<th>${h}</th>`).join('');
+      return `
+        <div class='file-preview-card'>
+          <h6 class='text-primary'>📁 ${file.file}</h6>
+          <div class='table-responsive'>
+            <table class='table table-bordered preview-table'>
+              <thead><tr>${headers}</tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }).join('');
+  } else {
+    previewOutput.innerHTML = `<div class='alert alert-danger'>${data.error}</div>`;
+    previewSection.style.display = "none";
+  }
+});
+
+
+document.getElementById("confirm-upload").addEventListener("click", async () => {
+  if (!selectedFiles.length) return;
+
+  const formData = new FormData();
+  for (let file of selectedFiles) formData.append("files", file);
+
+  const res = await fetch("/upload-confirmed-stream/", {
+    method: "POST",
+    body: formData,
+  });
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let received = "";
+  let uploadCompleted = false; // Flag to track if upload is completed
+  let skippedRowsPrinted = {}; // Object to track skipped rows per file
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    received += decoder.decode(value, { stream: true });
+    const chunks = received.split("\n\n");
+
+    for (let chunk of chunks) {
+      if (chunk.startsWith("data: ")) {
+        const jsonData = JSON.parse(chunk.replace("data: ", ""));
+
+        if (jsonData.progress) {
+          progressBar.style.width = jsonData.progress + "%";
+          progressBar.textContent = jsonData.progress + "%";
+        }
+
+        // Handling Inserted Rows (Green)
+        if (jsonData.inserted) {
+          responseDiv.innerHTML += `
+            <div class="alert alert-success">
+              <span style="color: green;">Inserted: ${jsonData.inserted} rows</span>
+            </div>
+          `;
+        }
+
+        // Handling Skipped Rows (Red) - Only print once per file
+        if (jsonData.skipped && !skippedRowsPrinted[jsonData.file]) {
+          skippedRowsPrinted[jsonData.file] = true; // Mark as printed for this file
+          responseDiv.innerHTML += `
+            <div class="alert alert-danger">
+              <span style="color: red;">Skipped: ${jsonData.skipped} rows (likely duplicates or errors)</span>
+            </div>
+          `;
+        }
+
+        // If upload is completed, show success message only once
+        if (jsonData.done && !uploadCompleted) {
+          uploadCompleted = true; // Prevent multiple success messages
+          progressBar.classList.remove("progress-bar-animated");
+          responseDiv.innerHTML += `
+            <div class='alert alert-success'>
+              ✅ Upload complete!<br>
+              Inserted: ${jsonData.inserted}<br>
+              Skipped: ${jsonData.skipped}
+            </div>`;
+        }
+
+        // Handle errors
+        if (jsonData.error) {
+          progressBar.classList.remove("progress-bar-animated");
+          responseDiv.innerHTML = `<div class='alert alert-danger'>${jsonData.error}</div>`;
+        }
+      }
+    }
+  }
+});
+
+
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+      document.querySelectorAll('.card, .file-preview-card, .description').forEach(el => {
+        el.classList.toggle('bg-dark');
+        el.classList.toggle('text-white');
+      });
+      document.querySelectorAll('header, footer').forEach(el => {
+        el.classList.toggle('bg-dark');
+        el.classList.toggle('text-white');
+      });
+    }
+  </script>
+</body>
+</html>
