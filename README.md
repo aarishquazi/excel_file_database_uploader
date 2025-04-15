@@ -123,12 +123,6 @@ CREATE TABLE users (
 );
 ```
 
-## 🌙 Screenshots
-
-| Upload Page | Dark Mode |
-|-------------|-----------|
-| ![light](https://via.placeholder.com/400x250?text=Upload+Preview) | ![dark](https://via.placeholder.com/400x250?text=Dark+Mode) |
-
 ## 🔮 Roadmap
 
 - [x] Multiple Excel file uploads with merging  
@@ -141,6 +135,6 @@ CREATE TABLE users (
 
 ## 🧠 Credits
 
-Built by **Installer Guru**  
+Built by **Aarish Quazi**  
 📍 Jaipur, Rajasthan  
-📧 Email: [you@example.com]
+📧 Email: [aarishquazi@gmail.com]
