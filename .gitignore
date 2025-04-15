@@ -7,3 +7,4 @@ env/
 .idea/
 *.log
 .DS_Store
+credential.py
